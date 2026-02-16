@@ -15,6 +15,8 @@ import {
   Clock,
   AlertTriangle,
   FlaskConical,
+  Thermometer,
+  ShieldCheck,
 } from "lucide-react";
 
 const estadoColors: Record<string, string> = {
@@ -25,6 +27,12 @@ const estadoColors: Record<string, string> = {
   BLOQUEADO: "bg-warning/20 text-warning border-warning/30 glow-warning",
 };
 
+const statusGeralColors = {
+  VERDE: "bg-success/20 text-success border-success/30 glow-success",
+  AMARELO: "bg-warning/20 text-warning border-warning/30 glow-warning",
+  VERMELHO: "bg-destructive/20 text-destructive border-destructive/30 glow-destructive animate-pulse-glow",
+};
+
 function formatUptime(seconds: number): string {
   const h = Math.floor(seconds / 3600);
   const m = Math.floor((seconds % 3600) / 60);
@@ -32,14 +40,16 @@ function formatUptime(seconds: number): string {
 }
 
 const DashboardPage = () => {
-  const { data, status, mockMode, toggleMock } = useAres();
+  const { data, status, mockMode, toggleMock, safeTrack } = useAres();
+  const { indiceSeguranca, statusGeral, temperaturaOleo, alarmes } = safeTrack;
+  const alarmesAtivos = alarmes.filter((a) => a.status === "ativo").length;
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
-          <p className="text-muted-foreground text-sm">Monitoramento em tempo real</p>
+          <h1 className="text-2xl font-bold text-foreground">Dashboard — SafeTrack</h1>
+          <p className="text-muted-foreground text-sm">Monitoramento inteligente em tempo real</p>
         </div>
         <Button
           variant={mockMode ? "default" : "outline"}
@@ -52,8 +62,49 @@ const DashboardPage = () => {
         </Button>
       </div>
 
-      {/* Status Geral */}
+      {/* Status Geral + Índice de Segurança */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="border-border bg-card">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-muted-foreground flex items-center gap-2">
+              <ShieldCheck className="h-4 w-4" />
+              Status Geral
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Badge className={`text-lg px-4 py-1 ${statusGeralColors[statusGeral]}`}>
+              {statusGeral}
+            </Badge>
+            <p className="text-xs text-muted-foreground mt-2">
+              {statusGeral === "VERDE" ? "Operação normal" : statusGeral === "AMARELO" ? "Atenção necessária" : "Condição crítica"}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-border bg-card">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-muted-foreground flex items-center gap-2">
+              <ShieldAlert className="h-4 w-4" />
+              Índice de Segurança
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className={`text-3xl font-mono font-bold ${
+              indiceSeguranca >= 70 ? "text-success" : indiceSeguranca >= 40 ? "text-warning" : "text-destructive"
+            }`}>
+              {indiceSeguranca.toFixed(0)}%
+            </p>
+            <div className="w-full bg-secondary rounded-full h-2 mt-2 overflow-hidden">
+              <div
+                className={`h-full transition-all duration-1000 rounded-full ${
+                  indiceSeguranca >= 70 ? "bg-success" : indiceSeguranca >= 40 ? "bg-warning" : "bg-destructive"
+                }`}
+                style={{ width: `${indiceSeguranca}%` }}
+              />
+            </div>
+          </CardContent>
+        </Card>
+
         <Card className="border-border bg-card">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm text-muted-foreground flex items-center gap-2">
@@ -65,36 +116,6 @@ const DashboardPage = () => {
             <Badge className={`text-lg px-4 py-1 ${estadoColors[data.estado] || ""}`}>
               {data.estado}
             </Badge>
-          </CardContent>
-        </Card>
-
-        <Card className="border-border bg-card">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-muted-foreground flex items-center gap-2">
-              <Gauge className="h-4 w-4" />
-              Pressão
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-mono font-bold text-primary">
-              {data.sensores.pressao_psi.toFixed(1)}
-              <span className="text-sm text-muted-foreground ml-1">PSI</span>
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-border bg-card">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-muted-foreground flex items-center gap-2">
-              <Ruler className="h-4 w-4" />
-              Curso
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-mono font-bold text-primary">
-              {data.sensores.curso_cm.toFixed(2)}
-              <span className="text-sm text-muted-foreground ml-1">cm</span>
-            </p>
           </CardContent>
         </Card>
 
@@ -118,6 +139,56 @@ const DashboardPage = () => {
             >
               {status === "conectado" ? "Online" : status === "mock" ? "MOCK" : "Offline"}
             </Badge>
+            {alarmesAtivos > 0 && (
+              <Badge variant="outline" className="ml-2 bg-destructive/20 text-destructive border-destructive/30">
+                {alarmesAtivos} alarme{alarmesAtivos > 1 ? "s" : ""}
+              </Badge>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Sensores */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card className="border-border bg-card">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-muted-foreground flex items-center gap-2">
+              <Gauge className="h-4 w-4" /> Pressão
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className={`text-3xl font-mono font-bold ${data.sensores.pressao_psi > 2500 ? "text-destructive" : "text-primary"}`}>
+              {data.sensores.pressao_psi.toFixed(1)}
+              <span className="text-sm text-muted-foreground ml-1">PSI</span>
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-border bg-card">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-muted-foreground flex items-center gap-2">
+              <Ruler className="h-4 w-4" /> Curso
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-3xl font-mono font-bold text-primary">
+              {data.sensores.curso_cm.toFixed(2)}
+              <span className="text-sm text-muted-foreground ml-1">cm</span>
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-border bg-card">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-muted-foreground flex items-center gap-2">
+              <Thermometer className="h-4 w-4" /> Temperatura do Óleo
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className={`text-3xl font-mono font-bold ${temperaturaOleo > 65 ? "text-destructive" : temperaturaOleo > 50 ? "text-warning" : "text-primary"}`}>
+              {temperaturaOleo.toFixed(1)}
+              <span className="text-sm text-muted-foreground ml-1">°C</span>
+            </p>
           </CardContent>
         </Card>
       </div>

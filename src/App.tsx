@@ -12,6 +12,9 @@ import SegurancaPage from "./pages/SegurancaPage";
 import LogsPage from "./pages/LogsPage";
 import ManutencaoPage from "./pages/ManutencaoPage";
 import AmbientePage from "./pages/AmbientePage";
+import AlarmesPage from "./pages/AlarmesPage";
+import IndicadoresPage from "./pages/IndicadoresPage";
+import RelatoriosPage from "./pages/RelatoriosPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -33,6 +36,9 @@ const App = () => (
               <Route path="logs" element={<LogsPage />} />
               <Route path="manutencao" element={<ManutencaoPage />} />
               <Route path="ambiente" element={<AmbientePage />} />
+              <Route path="alarmes" element={<AlarmesPage />} />
+              <Route path="indicadores" element={<IndicadoresPage />} />
+              <Route path="relatorios" element={<RelatoriosPage />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
